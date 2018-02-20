@@ -115,7 +115,7 @@ public class BasicMovement : MonoBehaviour
         ui.dashCharges[Dashes-1].enabled = false;
         Dashes -= 1;
         speed= DashSpeed;
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(2f);
         speed= moveSpeed;
         yield break;
     }
