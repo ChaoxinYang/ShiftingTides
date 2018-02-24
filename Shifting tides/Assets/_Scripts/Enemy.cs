@@ -8,7 +8,6 @@ using UnityEngine.AI;
 
 public class Enemy : Agent
 {
-
     //private Vector3 homePoint;
     public Transform[] wayPoints;
     protected float attackRange, visionRange, sightRange, chaseRange, standByspeed, combatSpeed, distanceToPlayer;
@@ -28,7 +27,7 @@ public class Enemy : Agent
     }
 
     /// <summary>
-    /// Initializing the values voor the enemy.
+    /// Initializing the values for the enemy.
     /// </summary>
     /// <param name="MaxHealth"> Maximum health of the enemy.</param>
     /// <param name="AttackRange">Maximum attack range of the enemy.</param>
@@ -37,9 +36,9 @@ public class Enemy : Agent
     /// <param name="ChaseRange">Maximum attack range of the enemy</param>
     /// <param name="StandByspeed">Maximum attack range of the enemy</param>
     /// <param name="CombatSpeed">Maximum attack range of the enemy</param>
-    public void Init(int MaxHealth ,float AttackRange, float VisionRange, float SightRange, float ChaseRange, float StandByspeed, float CombatSpeed)
+    public void Init(int MaxHealth, float AttackRange, float VisionRange, float SightRange, float ChaseRange, float StandByspeed, float CombatSpeed)
     {
-        maxHealth = MaxHealth; 
+        maxHealth = MaxHealth;
         currentHealth = maxHealth;
         attackRange = AttackRange;
         visionRange = VisionRange;
@@ -47,7 +46,6 @@ public class Enemy : Agent
         chaseRange = ChaseRange;
         standByspeed = StandByspeed;
         combatSpeed = CombatSpeed;
-      
     }
 
     IEnumerator Searching()
@@ -81,13 +79,12 @@ public class Enemy : Agent
 
     public IEnumerator Hunt(GameObject hunted)
     {
-       while (distanceToPlayer < chaseRange)
+        while (distanceToPlayer < chaseRange)
         {
             updatePlayerDistance(hunted);
             Chase(hunted);
             yield return new WaitForSeconds(0.5f);
 
-        
             if (distanceToPlayer < attackRange)
             {
                 Attack();
@@ -97,18 +94,18 @@ public class Enemy : Agent
                 finishedAttacking = false;
             }
         }
-            alerted = false;
-            agent.speed = standByspeed;      
-            StartCoroutine(MovingCor);
-            StartCoroutine(Searching());
-
-        }
-    
-    private void updatePlayerDistance(GameObject hunted) {
-        distanceToPlayer = Vector3.Distance(gameObject.transform.position, hunted.transform.position);
-
+        alerted = false;
+        agent.speed = standByspeed;
+        StartCoroutine(MovingCor);
+        StartCoroutine(Searching());
     }
-    public virtual void Attack() 
+
+    private void updatePlayerDistance(GameObject hunted)
+    {
+        distanceToPlayer = Vector3.Distance(gameObject.transform.position, hunted.transform.position);
+    }
+
+    public virtual void Attack()
     {
         //string creatureName = Regex.Replace(gameObject.name, @"[^a-zA-Z]+", "");
         //Vector3 fwd = gameObject.transform.TransformDirection(Vector3.forward);
@@ -120,7 +117,6 @@ public class Enemy : Agent
     public virtual void StartEnemyBehavior()
     {
         agent.speed = combatSpeed;
-
     }
 
     public override void GotHit()
@@ -129,7 +125,7 @@ public class Enemy : Agent
         this.alerted = true;
         this.currentHealth -= 1;
         if (currentHealth == 0)
-        {             
+        {
             Destroy(gameObject);
         }
     }

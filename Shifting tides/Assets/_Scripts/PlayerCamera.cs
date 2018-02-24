@@ -36,8 +36,9 @@ public class PlayerCamera : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         cursor.sprite = lockOffCursor;
         cameraMain = Camera.main;
-        basicMovement = GetComponent<BasicMovement>();      
+        basicMovement = GetComponent<BasicMovement>();
     }
+
     void Update()
     {
         mouseX += Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
@@ -51,37 +52,35 @@ public class PlayerCamera : MonoBehaviour
                 lockedOn = false;
                 nearestTarget = null;
             }
-            else {
-                lockOnTarget();                           
-            }  
-                             
+            else
+            {
+                lockOnTarget();
+            }
+
         }
+
         if (lockedOn)
         {
             Invoke("CheckIfTargetIsInVision", 1);
 
         }
-    
     }
 
-    private RaycastHit[] lookForTarget() {
-
-        int layerMask = 1 <<13;
+    private RaycastHit[] lookForTarget()
+    {
+        int layerMask = 1 << 13;
         RaycastHit[] hits;
         Vector3 fwd = transform.TransformDirection(Vector3.forward);
         hits = Physics.BoxCastAll(gameObject.transform.position, new Vector3(6, 5, 1), fwd, Quaternion.Euler(cameraMouseY, mouseX, 0.0f), 30f, layerMask);
         return hits;
-
     }
 
     private void CheckIfTargetIsInVision()
     {
-
-
         GameObject lastTarget = nearestTarget;
         RaycastHit[] hits;
         hits = lookForTarget();
-        bool TargetInSight = false; 
+        bool TargetInSight = false;
         foreach (RaycastHit rh in hits)
         {
             if (rh.collider.gameObject == lastTarget)
@@ -90,29 +89,26 @@ public class PlayerCamera : MonoBehaviour
                 return;
             }
         }
-        if (TargetInSight == false)
+
+        if (!TargetInSight)
         {
             lockedOn = false;
             cursor.GetComponent<Image>().sprite = lockOffCursor;
         }
     }
 
-
-
     private void lockOnTarget()
     {
-       
-     
         RaycastHit[] hits;
         hits = lookForTarget();
         float closestDistanceSqr = Mathf.Infinity;
-        if (hits.Length == 0) {
+        if (hits.Length == 0)
+        {
             cursor.GetComponent<Image>().sprite = lockOffCursor;
             lockedOn = false;
             return;
-
         }
-        
+
         foreach (RaycastHit rh in hits)
         {
             Rigidbody ridg = rh.collider.gameObject.GetComponent<Rigidbody>();
@@ -120,13 +116,13 @@ public class PlayerCamera : MonoBehaviour
             {
                 Vector3 directionToTarget = rh.collider.gameObject.transform.position - gameObject.transform.position;
                 float dSqrToTarget = directionToTarget.sqrMagnitude;
-                
+
                 if (dSqrToTarget < closestDistanceSqr)
                 {
 
                     closestDistanceSqr = dSqrToTarget;
                     nearestTarget = rh.collider.gameObject;
-                  
+
                 }
             }
         }
@@ -137,24 +133,24 @@ public class PlayerCamera : MonoBehaviour
 
     void LateUpdate()
     {
-
         cameraMouseY = Mathf.Clamp(mouseY, cameraMouseMIN_Y, MAX_Y);
         mouseY = Mathf.Clamp(mouseY, MIN_Y, MAX_Y);
-     
+
         Vector3 direction = new Vector3((1f * transform.localScale.z), 0.0f, (-5f * transform.localScale.x));
         Quaternion rotation = Quaternion.Euler(cameraMouseY, mouseX, 0.0f);
 
         Vector3 desiredPosition = transform.position + offset;
         Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
         cameraMain.fieldOfView = basicMovement.CameraView;
-                
+
         basicMovement.bow.transform.LookAt(shootTarget.transform);
         cameraMain.transform.position = smoothedPosition + rotation * direction;
         cameraMain.transform.rotation = rotation;
-        if (lockedOn) {
+        if (lockedOn)
+        {
             shootTarget.transform.position = nearestTarget.transform.position;
         }
-        if (!lockedOn)
+        else
         {
             shootTarget.transform.position = cameraMain.transform.position + cameraMain.transform.forward * 30f + cameraMain.transform.right * targetOffeset.x
             + cameraMain.transform.up * targetOffeset.y;

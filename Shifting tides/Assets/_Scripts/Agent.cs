@@ -17,10 +17,10 @@ public abstract class Agent : MonoBehaviour
     protected IEnumerator Moving(Transform[] wayPoints)
     {
         Debug.Log(gameObject.name + "Started Moving");
-        
+
         DetermineTargetPosition(wayPoints);
         MoveTowardsTarget(agent, currentTarget);
-            
+
         yield return new WaitUntil(() => Arrived(transform.position, destination, 5));
 
         yield return new WaitForSeconds(5f);
@@ -31,6 +31,7 @@ public abstract class Agent : MonoBehaviour
     {
         agent.SetDestination(currentTarget);
     }
+
     void DetermineTargetPosition(Transform[] wayPoints)
     {
         currentTarget = wayPoints[Random.Range(0, wayPoints.Length)].position;
@@ -51,6 +52,7 @@ public abstract class Agent : MonoBehaviour
             MoveTowardsTarget(agent, destination);
         }
     }
+
     protected bool Arrived(Vector3 gameObject, Vector3 target, float range)
     {
         bool Arrived = false;
@@ -61,12 +63,14 @@ public abstract class Agent : MonoBehaviour
         }
         return Arrived;
     }
+
     protected void Chase(GameObject hunted)
     {
         //Debug.Log("Chase");
         currentTarget = hunted.transform.position;
         MoveTowardsTarget(agent, currentTarget);
     }
+
     protected void Flee(GameObject hunter)
     {
         //Debug.Log("Flee");
@@ -74,25 +78,25 @@ public abstract class Agent : MonoBehaviour
         MoveTowardsTarget(agent, currentTarget);
     }
 
-    public virtual void GotHit() {
-       
-     
+    public virtual void GotHit()
+    {
+
+
     }
-    void ChangeToOriginMaterial() {
+
+    void ChangeToOriginMaterial()
+    {
 
         meshRenderer.material = originMaterial;
-    } 
+    }
+
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Arrow"))
-        {           
-            Destroy(collision.gameObject);                         
+        {
+            Destroy(collision.gameObject);
             GotHit();
             Invoke("ChangeToOriginMaterial", 0.5f);
         }
     }
-
-    
 }
-
-
