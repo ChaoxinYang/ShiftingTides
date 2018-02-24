@@ -5,6 +5,7 @@ using UnityEngine;
 public class ArrowBehaviour : MonoBehaviour
 {
     private Vector3 arrowPlaceholderPosition, arrowPlaceholderRotation;
+    public float penetrationStrength;
     private GameObject arrowPlaceholder;
 
     // Use this for initialization
@@ -17,30 +18,22 @@ public class ArrowBehaviour : MonoBehaviour
     {
         switch (other.gameObject.tag)
         {
-            case "Ground":
+         
+            default:
                 Debug.Log("Hitting: " + other.gameObject.tag);
-                SetupArrowPlaceholder();
-                break;
-            case "Wall":
-                Debug.Log("Hitting: " + other.gameObject.tag);
-                SetupArrowPlaceholder();
+                SetupArrowPlaceholder(other.contacts[0].point, other.relativeVelocity);
                 break;
         }
     }
 
-    // This method gets the current postion and rotation of the arrow and hold them in
-    // two separate variables.
-    private void CopyPositionAndRotationForArrowPlaceholder()
-    {
-        arrowPlaceholderPosition = transform.position;
-        arrowPlaceholderRotation = transform.eulerAngles;
-    }
-
     // This method calls CopyPositionAndRotationForArrowPlaceholder.
     // Then it instantiates the ArrowPlaceholder with the values from CopyPositionAndRotationForArrowPlaceholder and destroys the current arrow.
-    private void SetupArrowPlaceholder()
+    private void SetupArrowPlaceholder(Vector3 contactPoint, Vector3 hitSpeed)
     {
-        CopyPositionAndRotationForArrowPlaceholder();
+      
+        Vector3 spawnPosition = contactPoint - hitSpeed*penetrationStrength;    
+        arrowPlaceholderPosition = spawnPosition;
+        arrowPlaceholderRotation = transform.eulerAngles;
         Instantiate(arrowPlaceholder, arrowPlaceholderPosition, arrowPlaceholder.transform.rotation = Quaternion.Euler(arrowPlaceholderRotation));
         Destroy(gameObject);
     }

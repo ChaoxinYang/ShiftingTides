@@ -8,7 +8,6 @@ public class SourceSpawner : MonoBehaviour
     {
         if (collision.gameObject.tag == "Arrow")
         {
-
             SpawnSourcePoint(collision.contacts[0].point, collision.relativeVelocity);
         }
     }

@@ -6,9 +6,9 @@ public class DestroyGameObjectAfterTime : MonoBehaviour
 {
     public float destroyObjectAfterSeconds;
 
-    // Update is called once per frame
-    void Update()
+    private void Start()
     {
         Destroy(gameObject, destroyObjectAfterSeconds);
     }
+
 }
