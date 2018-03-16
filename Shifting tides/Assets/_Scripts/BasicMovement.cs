@@ -165,6 +165,7 @@ public class BasicMovement : MonoBehaviour
         }
     }
 
+
     void Start()
     {
         arrowSpeed = 30;
@@ -182,8 +183,12 @@ public class BasicMovement : MonoBehaviour
     {
         // Debug.Log(Input.inputString);
         //Debug.Log(Input.GetAxis("Horizontal"));
+
+       
         moveHorizontal = Input.GetAxisRaw("Horizontal") * speed * transform.right;
         moveVertical = Input.GetAxisRaw("Vertical") * speed * transform.forward;
+
+
 
         if (Input.GetKeyDown(KeyCode.F) && Dashes > 0 && skillObtained[1])
         {
@@ -202,12 +207,12 @@ public class BasicMovement : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.LeftShift))
         {
-            speed = maxSpeed;
+            speedLimit = maxSpeed;
         }
 
         if (Input.GetKeyUp(KeyCode.LeftShift))
         {
-            speed = moveSpeed;
+            speedLimit = moveSpeed;
         }
 
         if (Input.GetMouseButton(1) && Arrows > 0 && skillObtained[0])
@@ -248,9 +253,11 @@ public class BasicMovement : MonoBehaviour
     {
         ui.dashCharges[Dashes - 1].enabled = false;
         Dashes -= 1;
-        speed = DashSpeed;
-        yield return new WaitForSeconds(2f);
-        speed = moveSpeed;
+        speed = 420;
+        speedLimit = DashSpeed;
+        yield return new WaitForSeconds(0.3f);
+        speedLimit = moveSpeed;
+        speed = 42;
         yield break;
     }
 

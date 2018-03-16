@@ -1430,6 +1430,31 @@ Prefab:
       propertyPath: ui
       value: 
       objectReference: {fileID: 1427614229}
+    - target: {fileID: 114537919450593746, guid: 5be548db3b3d0c9459e86b045caa800d,
+        type: 2}
+      propertyPath: speedLimit
+      value: 7.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 114537919450593746, guid: 5be548db3b3d0c9459e86b045caa800d,
+        type: 2}
+      propertyPath: speed
+      value: 42
+      objectReference: {fileID: 0}
+    - target: {fileID: 114537919450593746, guid: 5be548db3b3d0c9459e86b045caa800d,
+        type: 2}
+      propertyPath: maxSpeed
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 114537919450593746, guid: 5be548db3b3d0c9459e86b045caa800d,
+        type: 2}
+      propertyPath: moveSpeed
+      value: 7.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 114537919450593746, guid: 5be548db3b3d0c9459e86b045caa800d,
+        type: 2}
+      propertyPath: DashSpeed
+      value: 25
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 5be548db3b3d0c9459e86b045caa800d, type: 2}
   m_IsPrefabParent: 0
