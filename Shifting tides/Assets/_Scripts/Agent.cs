@@ -80,8 +80,6 @@ public abstract class Agent : MonoBehaviour
 
     public virtual void GotHit()
     {
-
-
     }
 
     void ChangeToOriginMaterial()

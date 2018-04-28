@@ -4,6 +4,9 @@
 4 : Bow
 5 : Looped hallow mountain
 continue to work on physics
-fix dash  
+
+
 Color twitching 
-Player doesnt rotate with the camera when idle
+Player doesnt rotate with the camera when idle : Unbind rotation with when no movement input is detected.
+Abstract class with input bool Triggered for activate traps.
+

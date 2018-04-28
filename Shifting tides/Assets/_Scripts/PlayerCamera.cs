@@ -9,25 +9,40 @@ using System;
 public class PlayerCamera : MonoBehaviour
 {
     public float mouseSensitivity;
-
     [HideInInspector]
     public float mouseX, mouseY, cameraMouseY;
-    private const float MAX_Y = 90.0f;
-    private const float MIN_Y = -40.0f;
+    private const float MAX_Y = 60;
+    private const float MIN_Y = -60.0f;
     private const float cameraMouseMIN_Y = -20.0f;
     [HideInInspector]
     public Camera cameraMain;
-    public float smoothSpeed = 0.125f;
-    public Vector3 offset;
+    public float smoothSpeed = 10f;
+
     public Image cursor;
     public Sprite lockOnCursor, lockOffCursor;
-    public GameObject shootTarget;
+    public Transform player;
     public BasicMovement basicMovement;
+
+    public GameObject shootTarget;
     private float targetDistance;
     public Vector3 targetOffeset;
     public bool lockedOn;
     private GameObject nearestTarget;
     private RaycastHit hits;
+
+    [HideInInspector]
+    public float angleH;
+    private float angleV;
+    public Vector3 pivotOffset;
+    public Vector3 camOffset;
+    private Vector3 smoothPivotOffset;
+    private Vector3 smoothCamOffset;
+    private Vector3 targetPivotOffset;
+    private Vector3 targetCamOffset;
+    [HideInInspector]
+    public float targetFOV;
+    private float relCameraPosMag;
+    private Vector3 relCameraPos;
 
     private void Start()
     {
@@ -36,14 +51,44 @@ public class PlayerCamera : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         cursor.sprite = lockOffCursor;
         cameraMain = Camera.main;
-        basicMovement = GetComponent<BasicMovement>();
+        relCameraPos = transform.position - player.position;
+        relCameraPosMag = relCameraPos.magnitude - 0.5f;
+        transform.position = player.position + Quaternion.identity * pivotOffset + Quaternion.identity * camOffset;
+        smoothPivotOffset = pivotOffset;
+        smoothCamOffset = camOffset;
+        angleH = player.eulerAngles.y;
+        targetFOV = 60f;
+        ResetTargetOffsets();
     }
 
     void Update()
-    {
-        mouseX += Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-        mouseY -= Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
-        cameraMouseY += -Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
+    {       
+        angleH += Mathf.Clamp(Input.GetAxis("Mouse X"), -1, 1) * mouseSensitivity;
+        angleV += Mathf.Clamp(Input.GetAxis("Mouse Y"), -1, 1) * mouseSensitivity;
+        angleV = Mathf.Clamp(angleV, MIN_Y, MAX_Y);
+
+        Quaternion aimRotation = Quaternion.Euler(-angleV, angleH, 0);
+        Quaternion camYRotation = Quaternion.Euler(0, angleH, 0);
+        transform.rotation = aimRotation;
+
+        Vector3 baseTempPosition = player.position + camYRotation * targetPivotOffset;
+        Vector3 noCollisionOffset = targetCamOffset;
+       
+        for (float zOffset = targetCamOffset.z; zOffset <= 0; zOffset += 0.5f)
+        {
+            noCollisionOffset.z = zOffset;
+            if (DoubleViewingPosCheck(baseTempPosition + aimRotation * noCollisionOffset, Mathf.Abs(zOffset)) || zOffset == 0)
+            {
+                
+                break;
+            }
+        }
+        smoothPivotOffset = Vector3.Lerp(smoothPivotOffset, targetPivotOffset, smoothSpeed * Time.deltaTime);
+        smoothCamOffset = Vector3.Lerp(smoothCamOffset, noCollisionOffset, smoothSpeed * Time.deltaTime);
+        transform.position = player.position + camYRotation * smoothPivotOffset + aimRotation * smoothCamOffset;
+        transform.GetComponent<Camera>().fieldOfView = Mathf.Lerp(transform.GetComponent<Camera>().fieldOfView, determineCurrentFOV(), Time.deltaTime);
+
+
         if (Input.GetMouseButtonDown(2))
         {
             if (lockedOn)
@@ -62,8 +107,69 @@ public class PlayerCamera : MonoBehaviour
         if (lockedOn)
         {
             Invoke("CheckIfTargetIsInVision", 1);
-
         }
+    }
+    public float determineCurrentFOV() {
+        float targetFOV = 60f;
+        if (!basicMovement.isAiming) {
+            if (basicMovement.maxInput >= 0f && basicMovement.maxInput <= 0.4f)
+            {
+                return targetFOV;
+            }
+            else if (basicMovement.maxInput > 0.4f && basicMovement.maxInput <= 0.7f)
+            {
+                return targetFOV = 65f;
+            }
+            else if (basicMovement.maxInput > 0.7f) {
+                return targetFOV = 130f;
+            }
+        }
+        else{
+            targetFOV = 40;
+        }
+        return targetFOV;
+    }
+    public void ResetTargetOffsets()
+    {
+        targetPivotOffset = pivotOffset;
+        targetCamOffset = camOffset;
+    }
+    bool DoubleViewingPosCheck(Vector3 checkPos, float offset)
+    {
+        float playerFocusHeight = player.GetComponent<BoxCollider>().center.y;
+        return ViewingPosCheck(checkPos, playerFocusHeight) && ReverseViewingPosCheck(checkPos, playerFocusHeight, offset);
+    }
+    bool ViewingPosCheck(Vector3 checkPos, float deltaPlayerHeight)
+    {
+        RaycastHit hit;
+
+        // If a raycast from the check position to the player hits something...
+        if (Physics.Raycast(checkPos, player.position + (Vector3.up * deltaPlayerHeight) - checkPos, out hit, relCameraPosMag))
+        {
+            // ... if it is not the player...
+            if (hit.transform != player && !hit.transform.GetComponent<Collider>().isTrigger)
+            {
+                // This position isn't appropriate.
+                return false;
+            }
+        }
+        // If we haven't hit anything or we've hit the player, this is an appropriate position.
+        return true;
+    }
+
+    // Check for collision from player to camera.
+    bool ReverseViewingPosCheck(Vector3 checkPos, float deltaPlayerHeight, float maxDistance)
+    {
+        RaycastHit hit;
+
+        if (Physics.Raycast(player.position + (Vector3.up * deltaPlayerHeight), checkPos - player.position, out hit, maxDistance))
+        {
+            if (hit.transform != player && hit.transform != transform && !hit.transform.GetComponent<Collider>().isTrigger)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private RaycastHit[] lookForTarget()
@@ -133,19 +239,7 @@ public class PlayerCamera : MonoBehaviour
 
     void LateUpdate()
     {
-        cameraMouseY = Mathf.Clamp(mouseY, cameraMouseMIN_Y, MAX_Y);
-        mouseY = Mathf.Clamp(mouseY, MIN_Y, MAX_Y);
-
-        Vector3 direction = new Vector3((1f * transform.localScale.z), 0.0f, (-5f * transform.localScale.x));
-        Quaternion rotation = Quaternion.Euler(cameraMouseY, mouseX, 0.0f);
-
-        Vector3 desiredPosition = transform.position + offset;
-        Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
-        cameraMain.fieldOfView = basicMovement.CameraView;
-
-        basicMovement.bow.transform.LookAt(shootTarget.transform);
-        cameraMain.transform.position = smoothedPosition + rotation * direction;
-        cameraMain.transform.rotation = rotation;
+       basicMovement.bow.transform.LookAt(shootTarget.transform);     
         if (lockedOn)
         {
             shootTarget.transform.position = nearestTarget.transform.position;

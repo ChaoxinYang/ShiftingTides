@@ -7,13 +7,6 @@ public class ShiftingTide : MonoBehaviour
     private int rightBound;
     private float growSpeed, maxSize;
 
-    // Use this for initialization
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
     void Update()
     {
         transform.localScale += Vector3.one * growSpeed * Time.deltaTime;

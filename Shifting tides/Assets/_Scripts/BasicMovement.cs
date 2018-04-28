@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,325 +7,255 @@ using UnityEngine.UI;
 public class BasicMovement : MonoBehaviour
 {
     private Rigidbody rbPlayer;
-    private Vector3 moveHorizontal, moveVertical, moveUpWard;
+    public Animator aniPlayer;
+    private Vector3 currentMotion;
+    private float slopeAngle;
     private Camera cameraMain;
-    private bool onGround, ClimblingWall;
-    public GameObject bow, UI;
-    private GameObject arrow;
+    [HideInInspector]
+    public bool onGround, ClimblingWall;
+    public GameObject bow, bowMesh, UI, gameManagerObject;
     public GameObject[] dashesImages;
+    private GameObject arrow;
     //0: bow , 1: The Source
     private bool[] skillObtained = new bool[10];
     public Ui ui;
-    public float speed, speedLimit, maxSpeed, moveSpeed, DashSpeed, jumpVel, gravity;
-    private float arrowSpeed, cameraView;
-
-    private int jumpsLeft, health, arrows, dashes;
-    private int maxDash = 0, maxJump = 1, maxHealth = 100;
-    private float dashCharge;
-    private float stamina;
-
-    public float ArrowSpeed
-    {
-        get
-        {
-            return arrowSpeed;
-        }
-        set
-        {
-            arrowSpeed = value;
-            if (arrowSpeed > 70)
-            {
-                arrowSpeed = 70;
-            }
-        }
-    }
-
-    public float CameraView
-    {
-        get
-        {
-            return cameraView;
-        }
-        set
-        {
-            cameraView = value;
-            if (cameraView <= 40)
-            {
-                cameraView = 40;
-            }
-            else if (cameraView > 60)
-            {
-                cameraView = 60;
-            }
-        }
-    }
-
-    public int JumpsLeft
-    {
-        get
-        {
-            return jumpsLeft;
-        }
-        set
-        {
-            jumpsLeft = value;
-            ui.sliders[0].value = JumpsLeft;
-            if
-                (jumpsLeft < 0)
-            {
-                jumpsLeft = 0;
-            }
-            if (jumpsLeft > maxJump)
-            {
-                jumpsLeft = maxJump;
-            }
-        }
-    }
-
-    public int Health
-    {
-        get
-        {
-            return health;
-        }
-        set
-        {
-            health = value;
-            ui.sliders[1].value = Health;
-            if (health < 0)
-            {
-                health = 0;
-            }
-            if (health > 100)
-            {
-                health = 100;
-            }
-        }
-    }
-
-    public float Stamina
-    {
-        get
-        {
-            return stamina;
-        }
-        set
-        {
-            stamina = value;
-            if (stamina < 0)
-            {
-                stamina = 0;
-            }
-            if (stamina > 100)
-            {
-                stamina = 100;
-            }
-        }
-    }
-
-    public int Arrows
-    {
-        get
-        {
-            return arrows;
-        }
-        set
-        {
-            arrows = value;
-            ui.texts[0].text = Arrows.ToString();
-            if (arrows < 0)
-            {
-                arrows = 0;
-            }
-            else if (arrows > 20)
-            {
-                arrows = 20;
-            }
-        }
-    }
-
-    public int Dashes
-    {
-        get
-        {
-            return dashes;
-        }
-        set
-        {
-            dashes = value;
-            if (dashes < 0)
-            {
-                dashes = 0;
-            }
-            else if (dashes > maxDash)
-            {
-                dashes = maxDash;
-            }
-        }
-    }
-
+    public PlayerCamera plyCamera;
+    public PlayerResourcesManager plyResourceMng;
+    private GameManager gameMng;
+    public float defaultMoveForce, moveForce, speedLimit, runLimit, moveLimit, dashForce, DashLimit, jumpVel, gravity, maxInput, startArrowSpeed, maxArrowSpeed;
+    private float h, v, inputSpeed,arrowSpeed;
+    public bool isAiming;
+    private Vector3 lastDirection;
 
     void Start()
-    {
-        arrowSpeed = 30;
-        JumpsLeft = 1;
-        Arrows = 10;
-        cameraView = 60;
-        dashes = 1;
-        Health = 20;
+    {   
         rbPlayer = gameObject.GetComponent<Rigidbody>();
+        gameMng = gameManagerObject.GetComponent<GameManager>();
         cameraMain = Camera.main;
         arrow = Resources.Load("Prefabs/Arrow") as GameObject;
+        resetArrowSpeed();
     }
 
     void Update()
     {
-        // Debug.Log(Input.inputString);
-        //Debug.Log(Input.GetAxis("Horizontal"));
+        //moveHorizontal = Input.GetAxisRaw("Horizontal") * speed * cameraMain.transform.right;
+        //moveVertical = Input.GetAxisRaw("Vertical") * speed * cameraMain.transform.forward;
+        currentMotion = Input.GetAxisRaw("Vertical") * moveForce * gameManagerObject.transform.forward + Input.GetAxisRaw("Horizontal") * moveForce * gameManagerObject.transform.right;
+        h = Input.GetAxis("Horizontal");
+        v = Input.GetAxis("Vertical");
+        inputSpeed = Vector2.ClampMagnitude(new Vector2(h, v), maxInput).magnitude;
+        aniPlayer.SetFloat("Speed", inputSpeed);
+    
+        if (!isAiming)
+        {
+            rotate(h, v);
+        }
 
-       
-        moveHorizontal = Input.GetAxisRaw("Horizontal") * speed * transform.right;
-        moveVertical = Input.GetAxisRaw("Vertical") * speed * transform.forward;
-
-
-
-        if (Input.GetKeyDown(KeyCode.F) && Dashes > 0 && skillObtained[1])
+        if (Input.GetKeyDown(KeyCode.F) && plyResourceMng.Dashes > 0 && skillObtained[1])
         {
             StartCoroutine(Dash());
         }
-
-        if (Dashes < maxDash)
-        {
-            chargeUpDash();
+        if (Input.GetKeyDown(KeyCode.R)) {
+            gameMng.enableTimeStop();
         }
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) && plyResourceMng.JumpsLeft > 0)
         {
             Jumping();
         }
 
-        if (Input.GetKeyDown(KeyCode.LeftShift))
+        if (Input.GetKey(KeyCode.LeftShift))
         {
-            speedLimit = maxSpeed;
+            changeMoveSpeedLimit(true,moveLimit);
         }
 
-        if (Input.GetKeyUp(KeyCode.LeftShift))
+        if (!Input.GetKey(KeyCode.LeftShift))
         {
-            speedLimit = moveSpeed;
+            changeMoveSpeedLimit(false,runLimit);
         }
 
-        if (Input.GetMouseButton(1) && Arrows > 0 && skillObtained[0])
+        if (Input.GetMouseButton(1) && plyResourceMng.Arrows > 0 && skillObtained[0])
         {
             ChargeUpArrow();
         }
-
-        if (!Input.GetMouseButton(1))
+        if (Input.GetMouseButtonUp(1) && isAiming)
         {
-            gainBackVision();
+            ShootArrow();
         }
 
-        if (Input.GetMouseButtonUp(1) && Arrows > 0 && skillObtained[0])
+    }
+
+    void FixedUpdate()
+    {
+        handleRigidBodyMovement();
+    }
+
+    private void handleRigidBodyMovement() {
+        gravity = rbPlayer.velocity.y >= -1 ? 0 : gravity -= 1.2f;
+        rbPlayer.AddForce(currentMotion + Vector3.up * (gravity + slopeAngle), ForceMode.Acceleration);
+        Vector2 horizontalVelocity = new Vector2(rbPlayer.velocity.x, rbPlayer.velocity.z);
+        horizontalVelocity = Vector2.ClampMagnitude(horizontalVelocity, speedLimit);
+        rbPlayer.velocity = new Vector3(horizontalVelocity.x, rbPlayer.velocity.y, horizontalVelocity.y);
+    }
+
+    private void resetArrowSpeed() {
+        arrowSpeed = startArrowSpeed;
+    }
+
+    private void aimRotate()
+    {
+        Vector3 forward = cameraMain.transform.TransformDirection(Vector3.forward);
+        // Player is moving on ground, Y component of camera facing is not relevant.
+        forward.y = 0.0f;
+        forward = forward.normalized;
+
+        // Always rotates the player according to the camera horizontal rotation in aim mode.
+        Quaternion targetRotation = Quaternion.Euler(0, plyCamera.angleH, 0);
+
+        float minSpeed = Quaternion.Angle(transform.rotation, targetRotation) * 0.02f;
+
+        // Rotate entire player to face camera.
+        lastDirection = forward;
+        transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, minSpeed * Time.deltaTime);
+    }
+
+    private void rotate(float horizontal, float vertical)
+    {
+
+        Vector3 desiredDirection;
+        Vector3 cameraForward = cameraMain.transform.TransformDirection(Vector3.forward);
+
+        cameraForward.y = 0f;
+        cameraForward = cameraForward.normalized;
+
+        Vector3 right = new Vector3(cameraForward.z, 0, -cameraForward.x);
+        desiredDirection = cameraForward * vertical + right * horizontal;
+        if (isMoving() && desiredDirection != Vector3.zero)
         {
-            ShotArrow();
+            Quaternion targetRotation = Quaternion.LookRotation(desiredDirection);
+            Quaternion newRotation = Quaternion.Slerp(rbPlayer.rotation, targetRotation, 0.05f);
+            rbPlayer.MoveRotation(newRotation);
+            LastDirection = desiredDirection;
         }
+        if (!isMoving())
+        {
+            Repositioning();
+        }
+    }
+
+    private void Repositioning()
+    {
+        if (lastDirection != Vector3.zero)
+        {
+            LastDirection = new Vector3(LastDirection.x, 0, LastDirection.z);
+            Quaternion targetRotation = Quaternion.LookRotation(lastDirection);
+            Quaternion newRotation = Quaternion.Slerp(rbPlayer.rotation, targetRotation, 0.05f);
+            rbPlayer.MoveRotation(newRotation);
+        }
+    }
+
+    private bool isMoving()
+    {
+        return (h != 0) || (v != 0);
     }
 
     private void Jumping()
     {
-        if (JumpsLeft > 0)
-        {
-            JumpsLeft -= 1;
-            if (onGround)
-            {
-                rbPlayer.AddForce((Vector3.up * jumpVel), ForceMode.Impulse);
-
-            }
-            if (onGround == false)
-            {
-                rbPlayer.velocity = moveHorizontal + moveVertical + new Vector3(0f, 1f, 0f);
-                rbPlayer.AddForce(new Vector3(0f, jumpVel / 3, 0f), ForceMode.Impulse);
-            }
-        }
+        rbPlayer.AddForce((Vector3.up * jumpVel), ForceMode.Impulse);
+        plyResourceMng.JumpsLeft -= 1;
     }
 
-    private IEnumerator Dash()
+    private void changeMoveSpeedLimit(bool isWalking,float targetLimit)
     {
-        ui.dashCharges[Dashes - 1].enabled = false;
-        Dashes -= 1;
-        speed = 420;
-        speedLimit = DashSpeed;
+        speedLimit = Mathf.Lerp(speedLimit, targetLimit, Time.deltaTime);
+        maxInput = isWalking ? maxInput = Mathf.Lerp(maxInput, 0.2f, Time.deltaTime) : maxInput = Mathf.Lerp(maxInput, 0.5f, Time.deltaTime);
+    }
+
+   private IEnumerator Dash()
+    {
+        Debug.Log("Dashing");
+        ui.dashCharges[plyResourceMng.Dashes - 1].enabled = false;
+        plyResourceMng.Dashes -= 1;
+        moveForce = dashForce;
+        speedLimit = DashLimit;
+        maxInput = 1f;
         yield return new WaitForSeconds(0.3f);
-        speedLimit = moveSpeed;
-        speed = 42;
+        moveForce = defaultMoveForce;
+        while (speedLimit > runLimit+0.2f)
+        {
+            speedLimit = Mathf.Lerp(speedLimit, runLimit, Time.deltaTime*5f);
+            maxInput = Mathf.Lerp(maxInput, 0.5f, Time.deltaTime * 5f);
+            yield return new WaitForSeconds(0.03f);
+        }
+        Invoke("chargeUpDash", 0.7f);
         yield break;
     }
 
     private void chargeUpDash()
     {
-        dashCharge += Time.deltaTime * 20f;
-        if (dashCharge >= 60f)
-        {
-
-            ui.dashCharges[Dashes].enabled = true;
-            Dashes += 1;
-            dashCharge = 0;
-        }
+        ui.dashCharges[plyResourceMng.Dashes].enabled = true;
+        plyResourceMng.Dashes += 1;
     }
-
-    private void ShotArrow()
+        
+    private void ShootArrow()
     {
-        Arrows -= 1;
-
+        plyResourceMng.Arrows -= 1;
         GameObject Arrow = Instantiate(arrow, bow.transform.position, bow.transform.rotation);
-        Arrow.GetComponent<Rigidbody>().velocity = Arrow.transform.forward * ArrowSpeed;
-        Debug.Log(Arrow.transform.position);
-        ArrowSpeed = 30;
-    }
-
-    private void gainBackVision()
-    {
-        CameraView += Time.deltaTime * 50f;
+        Arrow.GetComponent<Rigidbody>().AddForce(Arrow.transform.forward * arrowSpeed, ForceMode.Impulse);
+        Arrow.GetComponent<ArrowBehaviour>().Initialize(false);
+        if (isAiming) isAiming = !isAiming;
+        resetArrowSpeed();
     }
 
     private void ChargeUpArrow()
     {
-        ArrowSpeed += Time.deltaTime * 30f;
-        CameraView -= Time.deltaTime * 30f;
+        aimRotate();
+        arrowSpeed = Mathf.Lerp(arrowSpeed, maxArrowSpeed,Time.deltaTime);
+        if (!isAiming) isAiming = !isAiming;
     }
 
-    void FixedUpdate()
+    private void OnCollisionStay(Collision collision)
     {
-        gravity = rbPlayer.velocity.y >= 0 ? 0 : -8f;
-        rbPlayer.AddForce(moveHorizontal + moveVertical + Vector3.up * gravity, ForceMode.Force);
-        Vector2 horizontalVelocity = new Vector2(rbPlayer.velocity.x, rbPlayer.velocity.z);
-
-        if (horizontalVelocity.magnitude > speedLimit)
+        foreach (ContactPoint contact in collision.contacts)
         {
-            horizontalVelocity = horizontalVelocity.normalized * speedLimit;
+            if (Vector3.Angle(contact.normal, Vector3.up) < 45 && collision.gameObject.tag == "Slope")
+            {
+                slopeAngle = 5f;
+            }
         }
-
-        rbPlayer.velocity = new Vector3(horizontalVelocity.x, rbPlayer.velocity.y, horizontalVelocity.y);
-    }
-
-    void LateUpdate()
-    {
-        transform.localRotation = Quaternion.Euler(transform.localEulerAngles.x, cameraMain.transform.localEulerAngles.y, transform.localEulerAngles.z);
     }
 
     void OnCollisionEnter(Collision other)
     {
+        foreach (ContactPoint contact in other.contacts)
+        {
+            if (Vector3.Angle(contact.normal, Vector3.up) < 45)
+            {
+                onGround = true;
+                plyResourceMng.JumpsLeft = 1;
+            }
+        }
         switch (other.gameObject.tag)
         {
-            case "Ground":
-                onGround = true;
-                JumpsLeft = 2;
-                // rbPlayer.drag = 1;
-                break;
             case "Wall":
                 ClimblingWall = true;
                 break;
             case "Enemy":
-                Health -= 10;
+                plyResourceMng.Health -= 10;
+                break;
+            case "Bow":
+                GameObject.Destroy(other.gameObject);
+                skillObtained[0] = true;
+                bow.SetActive(true);
+                bowMesh.SetActive(true);
+                break;
+            case "TheSource":
+                GameObject.Destroy(other.gameObject);
+                skillObtained[1] = true;
+                UI.SetActive(true);
+                dashesImages[0].SetActive(true);
+                plyResourceMng.MaxDash = 1;
+                plyResourceMng.MaxDash = 2;
                 break;
         }
     }
@@ -337,24 +266,23 @@ public class BasicMovement : MonoBehaviour
         {
             case "Ground":
                 onGround = false;
-                // rbPlayer.drag = 0.8f;
+                break;
+
+            case "Slope":
+                onGround = false;
+                slopeAngle = 0;
                 break;
             case "Wall":
                 ClimblingWall = false;
                 break;
-            case "Bow":
-                GameObject.Destroy(collision.gameObject);
-                skillObtained[0] = true;
-                bow.SetActive(true);
-                UI.SetActive(true);
-                break;
-            case "TheSource":
-                GameObject.Destroy(collision.gameObject);
-                skillObtained[1] = true;
-                dashesImages[0].SetActive(true);
-                maxDash = 1;
-                maxJump = 2;
-                break;
+
         }
     }
+
+    public Vector3 LastDirection
+    {
+        get { return lastDirection; }
+        set { lastDirection = value; }
+    }
+
 }

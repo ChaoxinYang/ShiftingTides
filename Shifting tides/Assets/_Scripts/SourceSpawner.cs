@@ -17,7 +17,7 @@ public class SourceSpawner : MonoBehaviour
         Vector3 spawnPosition = contactPoint - Vector3.one;
         Vector3 endPosition = contactPoint - hitSpeed / 5;
 
-        GameObject sourcePoint = Instantiate(Resources.Load("Source") as GameObject, spawnPosition, Quaternion.identity);
-        sourcePoint.GetComponent<SourcePoint>().Init(4, endPosition);
+        GameObject sourcePoint = Instantiate(Resources.Load("Prefabs/Source") as GameObject, spawnPosition, Quaternion.identity);
+        sourcePoint.GetComponent<SourcePoint>().Init(5, endPosition,4);
     }
 }
